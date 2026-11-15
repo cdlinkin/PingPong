@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -23,6 +24,10 @@ type Config struct {
 	S3SecretKey string
 	S3Bucket    string
 	S3UseSSL    bool
+	LLMBaseURL  string
+	LLMModel    string
+	LLMAPIKey   string
+	LLMTimeout  time.Duration
 }
 
 func Load() (Config, error) {
@@ -40,6 +45,10 @@ func Load() (Config, error) {
 		S3AccessKey: os.Getenv("S3_ACCESS_KEY"),
 		S3SecretKey: os.Getenv("S3_SECRET_KEY"),
 		S3Bucket:    os.Getenv("S3_BUCKET"),
+		LLMBaseURL:  os.Getenv("LLM_BASE_URL"),
+		LLMModel:    os.Getenv("LLM_MODEL"),
+		LLMAPIKey:   os.Getenv("LLM_API_KEY"),
+		LLMTimeout:  60 * time.Second,
 		EnvFile:     envErr == nil,
 	}
 
@@ -53,6 +62,21 @@ func Load() (Config, error) {
 
 	if cfg.Storage == "" {
 		cfg.Storage = "local"
+	}
+
+	if cfg.LLMModel == "" {
+		cfg.LLMModel = "qwen2.5:3b"
+	}
+
+	if v := os.Getenv("LLM_TIMEOUT"); v != "" {
+		timeout, err := time.ParseDuration(v)
+		if err != nil || timeout <= 0 {
+			return cfg, fmt.Errorf(
+				"LLM_TIMEOUT must be a positive duration like 60s or 2m, got %q",
+				v,
+			)
+		}
+		cfg.LLMTimeout = timeout
 	}
 
 	if cfg.S3Bucket == "" {
