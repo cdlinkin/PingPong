@@ -46,3 +46,9 @@ type MentionModel struct {
 	MsgID  int
 	UserID int
 }
+
+type SummaryLineModel struct {
+	Login    string
+	Message  string
+	FileName *string
+}
