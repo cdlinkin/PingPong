@@ -18,3 +18,9 @@ type MemberModel struct {
 	Login  string
 	Role   string
 }
+
+type SummaryLineModel struct {
+	Login    string
+	Message  string
+	FileName *string
+}
