@@ -11,4 +11,7 @@ var (
 	ErrUnsupportedFile    = errors.New("unsupported file type")
 	ErrFileTooLarge       = errors.New("file too large")
 	ErrEmptyFile          = errors.New("empty file")
+
+	ErrSummaryDisabled    = errors.New("summary is disabled")
+	ErrNothingToSummarize = errors.New("nothing to summarize")
 )

@@ -155,7 +155,7 @@ func main() {
 	logger.Info("file storage", "type", cfg.Storage)
 
 	msgRepo := messages.NewRepository(pool)
-	msgService := messages.NewService(msgRepo, fileStore)
+	msgService := messages.NewService(msgRepo, fileStore, nil)
 	msgHandler := messages.NewHandler(msgService, wsHub, logger)
 
 	mux := http.NewServeMux()
