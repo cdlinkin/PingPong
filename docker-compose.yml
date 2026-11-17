@@ -14,6 +14,11 @@ services:
       - S3_ACCESS_KEY=${MINIO_ROOT_USER}
       - S3_SECRET_KEY=${MINIO_ROOT_PASSWORD}
       - S3_BUCKET=pingpong
+      - LLM_BASE_URL=http://host.docker.internal:11434/v1
+      - LLM_MODEL=qwen2.5:3b
+      - LLM_TIMEOUT=60s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - uploads:/srv/uploads
     ports:
