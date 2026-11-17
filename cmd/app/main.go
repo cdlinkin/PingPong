@@ -82,7 +82,7 @@ func health(rw http.ResponseWriter, r *http.Request) {
 
 //	@title			PingPong API
 //	@version		1.0
-//	@description	REST API веб-мессенджера PingPong: регистрация и JWT-авторизация, личные и групповые чаты, сообщения с курсорной пагинацией и поиском, доставка в реальном времени через WebSocket.
+//	@description	REST API веб-мессенджера PingPong: регистрация и JWT-авторизация, личные и групповые чаты, сообщения с курсорной пагинацией и поиском, доставка в реальном времени через WebSocket, пересказ непрочитанного.
 //	@description
 //	@description	**Как авторизоваться:** выполните `POST /login`, нажмите **Authorize** и вставьте `Bearer <token>`. Токен живёт 15 минут, новую пару выдаёт `POST /refresh`.
 //	@description
@@ -98,7 +98,7 @@ func health(rw http.ResponseWriter, r *http.Request) {
 //	@tag.name			chats
 //	@tag.description	Личные и групповые чаты, участники
 //	@tag.name			messages
-//	@tag.description	Отправка, история и поиск сообщений
+//	@tag.description	Отправка, история, поиск и пересказ сообщений
 //	@tag.name			realtime
 //	@tag.description	WebSocket
 

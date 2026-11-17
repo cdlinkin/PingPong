@@ -247,6 +247,12 @@ definitions:
         example: 39
         type: integer
     type: object
+  SummaryResponse:
+    properties:
+      summary:
+        example: '- anya предложила созвон в 10, oleg перенёс на 11'
+        type: string
+    type: object
   User:
     properties:
       created_at:
@@ -319,7 +325,7 @@ host: localhost:8080
 info:
   contact: {}
   description: |-
-    REST API веб-мессенджера PingPong: регистрация и JWT-авторизация, личные и групповые чаты, сообщения с курсорной пагинацией и поиском, доставка в реальном времени через WebSocket.
+    REST API веб-мессенджера PingPong: регистрация и JWT-авторизация, личные и групповые чаты, сообщения с курсорной пагинацией и поиском, доставка в реальном времени через WebSocket, пересказ непрочитанного.
 
     **Как авторизоваться:** выполните `POST /login`, нажмите **Authorize** и вставьте `Bearer <token>`. Токен живёт 15 минут, новую пару выдаёт `POST /refresh`.
 
@@ -1012,6 +1018,57 @@ paths:
       summary: Отметки прочтения участников
       tags:
       - messages
+  /chats/{id}/summary:
+    post:
+      description: 'Просит модель пересказать непрочитанные сообщения чата: до 100
+        последних, включая свои. Текст пересказа нигде не сохраняется. Если адрес
+        модели не задан, ответ 503. Если вы не участник чата, ответ 404.'
+      parameters:
+      - description: ID чата
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Пересказ
+          schema:
+            $ref: '#/definitions/SummaryResponse'
+        "400":
+          description: invalid chat id
+          schema:
+            type: string
+        "401":
+          description: invalid token
+          schema:
+            type: string
+        "404":
+          description: chat not found
+          schema:
+            type: string
+        "422":
+          description: nothing to summarize
+          schema:
+            type: string
+        "502":
+          description: summary unavailable
+          schema:
+            type: string
+        "503":
+          description: summary is disabled
+          schema:
+            type: string
+        "504":
+          description: summary timed out
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Краткий пересказ непрочитанного
+      tags:
+      - messages
   /chats/direct:
     post:
       consumes:
@@ -1338,7 +1395,7 @@ tags:
   name: auth
 - description: Личные и групповые чаты, участники
   name: chats
-- description: Отправка, история и поиск сообщений
+- description: Отправка, история, поиск и пересказ сообщений
   name: messages
 - description: WebSocket
   name: realtime

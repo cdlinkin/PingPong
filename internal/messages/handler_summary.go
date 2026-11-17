@@ -9,6 +9,23 @@ import (
 	"github.com/cdlinkin/pingpong/internal/httpx"
 )
 
+// SummarizeUnread godoc
+//
+//	@Summary		Краткий пересказ непрочитанного
+//	@Description	Просит модель пересказать непрочитанные сообщения чата: до 100 последних, включая свои. Текст пересказа нигде не сохраняется. Если адрес модели не задан, ответ 503. Если вы не участник чата, ответ 404.
+//	@Tags			messages
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		int				true	"ID чата"
+//	@Success		200	{object}	summaryResponse	"Пересказ"
+//	@Failure		400	{string}	string			"invalid chat id"
+//	@Failure		401	{string}	string			"invalid token"
+//	@Failure		404	{string}	string			"chat not found"
+//	@Failure		422	{string}	string			"nothing to summarize"
+//	@Failure		502	{string}	string			"summary unavailable"
+//	@Failure		503	{string}	string			"summary is disabled"
+//	@Failure		504	{string}	string			"summary timed out"
+//	@Router			/chats/{id}/summary [post]
 func (h *Handler) SummarizeUnread(rw http.ResponseWriter, r *http.Request) {
 	userID, ok := auth.UserIDFromContext(r.Context())
 	if !ok {
