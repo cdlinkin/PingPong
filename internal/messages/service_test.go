@@ -86,7 +86,7 @@ func (f *fakeRepo) ListMessage(ctx context.Context, chatID, beforeID, limit int)
 func (f *fakeRepo) SearchMessages(ctx context.Context, chatID int, query string) ([]MessageModel, error) {
 	f.searchCalls++
 	f.gotQuery = query
-	return nil, nil
+	return f.listed, nil
 }
 
 func (f *fakeRepo) ListMemberIDs(ctx context.Context, chatID int) ([]int, error) {
