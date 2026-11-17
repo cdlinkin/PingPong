@@ -43,6 +43,10 @@ type fakeRepo struct {
 	mentionCalls int
 	mentionErr   error
 	mentions     []MentionModel
+
+	summaryLines []SummaryLineModel
+	summaryLimit int
+	summaryErr   error
 }
 
 func (f *fakeRepo) IsMember(ctx context.Context, chatID, userID int) (bool, error) {
@@ -177,6 +181,14 @@ func (f *fakeRepo) AddMentions(ctx context.Context, msgID, chatID, authorID int,
 	return ids, nil
 }
 
+func (f *fakeRepo) ListUnreadForSummary(ctx context.Context, chatID, userID, limit int) ([]SummaryLineModel, error) {
+	f.summaryLimit = limit
+	if f.summaryErr != nil {
+		return nil, f.summaryErr
+	}
+	return f.summaryLines, nil
+}
+
 func (f *fakeRepo) ListMentions(ctx context.Context, msgIDs []int) ([]MentionModel, error) {
 	var out []MentionModel
 	for _, m := range f.mentions {
@@ -196,7 +208,7 @@ func TestSendMessage(t *testing.T) {
 
 	t.Run("ok, text is trimmed", func(t *testing.T) {
 		repo := newFakeRepo()
-		msg, err := NewService(repo, newFakeStorage()).SendMessage(ctx, chatID, member, "  привет  ", nil)
+		msg, err := NewService(repo, newFakeStorage(), nil).SendMessage(ctx, chatID, member, "  привет  ", nil)
 		if err != nil {
 			t.Fatalf("send: %v", err)
 		}
@@ -219,7 +231,7 @@ func TestSendMessage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := newFakeRepo()
-			_, err := NewService(repo, newFakeStorage()).SendMessage(ctx, tt.chatID, tt.userID, tt.text, nil)
+			_, err := NewService(repo, newFakeStorage(), nil).SendMessage(ctx, tt.chatID, tt.userID, tt.text, nil)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("want %v, got %v", tt.wantErr, err)
 			}
@@ -233,7 +245,7 @@ func TestSendMessage(t *testing.T) {
 		dbErr := errors.New("db down")
 		repo := newFakeRepo()
 		repo.isMemberErr = dbErr
-		_, err := NewService(repo, newFakeStorage()).SendMessage(ctx, chatID, member, "hi", nil)
+		_, err := NewService(repo, newFakeStorage(), nil).SendMessage(ctx, chatID, member, "hi", nil)
 		if !errors.Is(err, dbErr) {
 			t.Fatalf("want db error, got %v", err)
 		}
@@ -260,7 +272,7 @@ func TestListMessagePagination(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := newFakeRepo()
-			if _, err := NewService(repo, newFakeStorage()).ListMessage(ctx, member, chatID, tt.beforeID, tt.limit); err != nil {
+			if _, err := NewService(repo, newFakeStorage(), nil).ListMessage(ctx, member, chatID, tt.beforeID, tt.limit); err != nil {
 				t.Fatalf("list: %v", err)
 			}
 			if repo.gotBeforeID != tt.wantBeforeID {
@@ -274,7 +286,7 @@ func TestListMessagePagination(t *testing.T) {
 
 	t.Run("not a member", func(t *testing.T) {
 		repo := newFakeRepo()
-		_, err := NewService(repo, newFakeStorage()).ListMessage(ctx, stranger, chatID, 0, 0)
+		_, err := NewService(repo, newFakeStorage(), nil).ListMessage(ctx, stranger, chatID, 0, 0)
 		if !errors.Is(err, ErrChatNotFound) {
 			t.Fatalf("want ErrChatNotFound, got %v", err)
 		}
@@ -289,7 +301,7 @@ func TestSearchMessages(t *testing.T) {
 
 	t.Run("ok, query is trimmed", func(t *testing.T) {
 		repo := newFakeRepo()
-		if _, err := NewService(repo, newFakeStorage()).SearchMessages(ctx, member, chatID, "  go "); err != nil {
+		if _, err := NewService(repo, newFakeStorage(), nil).SearchMessages(ctx, member, chatID, "  go "); err != nil {
 			t.Fatalf("search: %v", err)
 		}
 		if repo.gotQuery != "go" {
@@ -309,7 +321,7 @@ func TestSearchMessages(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := newFakeRepo()
-			_, err := NewService(repo, newFakeStorage()).SearchMessages(ctx, tt.userID, chatID, tt.query)
+			_, err := NewService(repo, newFakeStorage(), nil).SearchMessages(ctx, tt.userID, chatID, tt.query)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("want %v, got %v", tt.wantErr, err)
 			}
@@ -325,7 +337,7 @@ func TestEditMessage(t *testing.T) {
 
 	t.Run("ok, text is trimmed", func(t *testing.T) {
 		repo := newFakeRepo()
-		msg, err := NewService(repo, newFakeStorage()).EditMessage(ctx, member, chatID, 5, "  новый текст ")
+		msg, err := NewService(repo, newFakeStorage(), nil).EditMessage(ctx, member, chatID, 5, "  новый текст ")
 		if err != nil {
 			t.Fatalf("edit: %v", err)
 		}
@@ -350,7 +362,7 @@ func TestEditMessage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := newFakeRepo()
 			repo.updateErr = tt.updateErr
-			_, err := NewService(repo, newFakeStorage()).EditMessage(ctx, tt.userID, chatID, 5, tt.text)
+			_, err := NewService(repo, newFakeStorage(), nil).EditMessage(ctx, tt.userID, chatID, 5, tt.text)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("want %v, got %v", tt.wantErr, err)
 			}
@@ -379,7 +391,7 @@ func TestDeleteMessage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := newFakeRepo()
 			repo.deleteErr = tt.deleteErr
-			err := NewService(repo, newFakeStorage()).DeleteMessage(ctx, tt.userID, chatID, 5)
+			err := NewService(repo, newFakeStorage(), nil).DeleteMessage(ctx, tt.userID, chatID, 5)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("want %v, got %v", tt.wantErr, err)
 			}
@@ -396,7 +408,7 @@ func TestMarkRead(t *testing.T) {
 	t.Run("ok returns final mark from repository", func(t *testing.T) {
 		repo := newFakeRepo()
 		repo.lastReadID = 120
-		got, err := NewService(repo, newFakeStorage()).MarkRead(ctx, chatID, member, 80)
+		got, err := NewService(repo, newFakeStorage(), nil).MarkRead(ctx, chatID, member, 80)
 		if err != nil {
 			t.Fatalf("mark read: %v", err)
 		}
@@ -423,7 +435,7 @@ func TestMarkRead(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := newFakeRepo()
 			repo.markErr = tt.markErr
-			_, err := NewService(repo, newFakeStorage()).MarkRead(ctx, chatID, member, tt.msgID)
+			_, err := NewService(repo, newFakeStorage(), nil).MarkRead(ctx, chatID, member, tt.msgID)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("want %v, got %v", tt.wantErr, err)
 			}
@@ -439,7 +451,7 @@ func TestListReads(t *testing.T) {
 
 	t.Run("member gets marks", func(t *testing.T) {
 		repo := newFakeRepo()
-		reads, err := NewService(repo, newFakeStorage()).ListReads(ctx, member, chatID)
+		reads, err := NewService(repo, newFakeStorage(), nil).ListReads(ctx, member, chatID)
 		if err != nil {
 			t.Fatalf("list reads: %v", err)
 		}
@@ -450,7 +462,7 @@ func TestListReads(t *testing.T) {
 
 	t.Run("stranger sees not found", func(t *testing.T) {
 		repo := newFakeRepo()
-		_, err := NewService(repo, newFakeStorage()).ListReads(ctx, stranger, chatID)
+		_, err := NewService(repo, newFakeStorage(), nil).ListReads(ctx, stranger, chatID)
 		if !errors.Is(err, ErrChatNotFound) {
 			t.Fatalf("want ErrChatNotFound, got %v", err)
 		}
@@ -471,7 +483,7 @@ func TestSendMessageReply(t *testing.T) {
 
 	t.Run("reply to message in same chat", func(t *testing.T) {
 		repo := newRepo()
-		msg, err := NewService(repo, newFakeStorage()).SendMessage(ctx, chatID, member, "согласен", id(5))
+		msg, err := NewService(repo, newFakeStorage(), nil).SendMessage(ctx, chatID, member, "согласен", id(5))
 		if err != nil {
 			t.Fatalf("send: %v", err)
 		}
@@ -490,7 +502,7 @@ func TestSendMessageReply(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := newRepo()
-			_, err := NewService(repo, newFakeStorage()).SendMessage(ctx, chatID, member, "hi", tt.replyTo)
+			_, err := NewService(repo, newFakeStorage(), nil).SendMessage(ctx, chatID, member, "hi", tt.replyTo)
 			if !errors.Is(err, ErrMessageNotFound) {
 				t.Fatalf("want ErrMessageNotFound, got %v", err)
 			}
@@ -511,7 +523,7 @@ func TestToggleReaction(t *testing.T) {
 
 	t.Run("set, change, remove", func(t *testing.T) {
 		repo := newRepo()
-		svc := NewService(repo, newFakeStorage())
+		svc := NewService(repo, newFakeStorage(), nil)
 
 		got, err := svc.ToggleReaction(ctx, member, chatID, 5, "👍")
 		if err != nil {
@@ -534,7 +546,7 @@ func TestToggleReaction(t *testing.T) {
 
 	t.Run("two users", func(t *testing.T) {
 		repo := newRepo()
-		svc := NewService(repo, newFakeStorage())
+		svc := NewService(repo, newFakeStorage(), nil)
 		svc.ToggleReaction(ctx, member, chatID, 5, "👍")
 		got, _ := svc.ToggleReaction(ctx, 3, chatID, 5, "👍")
 		if len(got) != 2 {
@@ -558,7 +570,7 @@ func TestToggleReaction(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := newRepo()
-			_, err := NewService(repo, newFakeStorage()).ToggleReaction(ctx, tt.userID, chatID, tt.msgID, tt.emoji)
+			_, err := NewService(repo, newFakeStorage(), nil).ToggleReaction(ctx, tt.userID, chatID, tt.msgID, tt.emoji)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("want %v, got %v", tt.wantErr, err)
 			}
@@ -581,7 +593,7 @@ func TestListMessageReactions(t *testing.T) {
 		{MsgID: 77, UserID: member, Emoji: "🔥"}, // чужая страница
 	}
 
-	msgs, err := NewService(repo, newFakeStorage()).ListMessage(ctx, member, chatID, 0, 0)
+	msgs, err := NewService(repo, newFakeStorage(), nil).ListMessage(ctx, member, chatID, 0, 0)
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}

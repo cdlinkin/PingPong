@@ -51,7 +51,7 @@ func TestSendMessageMentions(t *testing.T) {
 
 	t.Run("only other chat members are mentioned", func(t *testing.T) {
 		repo := newRepo()
-		msg, err := NewService(repo, newFakeStorage()).SendMessage(ctx, chatID, member, "@sonya @vasya @me @nobody глянь", nil)
+		msg, err := NewService(repo, newFakeStorage(), nil).SendMessage(ctx, chatID, member, "@sonya @vasya @me @nobody глянь", nil)
 		if err != nil {
 			t.Fatalf("send: %v", err)
 		}
@@ -62,7 +62,7 @@ func TestSendMessageMentions(t *testing.T) {
 
 	t.Run("no @ means no repository call", func(t *testing.T) {
 		repo := newRepo()
-		msg, err := NewService(repo, newFakeStorage()).SendMessage(ctx, chatID, member, "привет всем", nil)
+		msg, err := NewService(repo, newFakeStorage(), nil).SendMessage(ctx, chatID, member, "привет всем", nil)
 		if err != nil {
 			t.Fatalf("send: %v", err)
 		}
@@ -74,14 +74,14 @@ func TestSendMessageMentions(t *testing.T) {
 	t.Run("repository error is returned", func(t *testing.T) {
 		repo := newRepo()
 		repo.mentionErr = errors.New("db down")
-		if _, err := NewService(repo, newFakeStorage()).SendMessage(ctx, chatID, member, "@sonya", nil); err == nil {
+		if _, err := NewService(repo, newFakeStorage(), nil).SendMessage(ctx, chatID, member, "@sonya", nil); err == nil {
 			t.Fatal("expected error")
 		}
 	})
 
 	t.Run("caption of attachment", func(t *testing.T) {
 		repo := newRepo()
-		msg, err := NewService(repo, newFakeStorage()).SendAttachment(ctx, chatID, member, "@sonya схема", nil, "schema.png", bytes.NewReader(pngHeader))
+		msg, err := NewService(repo, newFakeStorage(), nil).SendAttachment(ctx, chatID, member, "@sonya схема", nil, "schema.png", bytes.NewReader(pngHeader))
 		if err != nil {
 			t.Fatalf("send: %v", err)
 		}
@@ -107,7 +107,7 @@ func TestListMessageMentions(t *testing.T) {
 		{MsgID: 99, UserID: 3},
 	}
 
-	msgs, err := NewService(repo, newFakeStorage()).ListMessage(ctx, member, chatID, 0, 20)
+	msgs, err := NewService(repo, newFakeStorage(), nil).ListMessage(ctx, member, chatID, 0, 20)
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}

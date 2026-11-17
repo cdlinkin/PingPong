@@ -1,6 +1,9 @@
 package config
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestLoad(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://localhost/test")
@@ -120,6 +123,59 @@ func TestLoadStorageErrors(t *testing.T) {
 
 			if _, err := Load(); err == nil {
 				t.Fatal("expected error")
+			}
+		})
+	}
+}
+
+func TestLoadLLM(t *testing.T) {
+	t.Setenv("JWT_SECRET", "secret")
+	t.Setenv("LLM_BASE_URL", "")
+	t.Setenv("LLM_MODEL", "")
+	t.Setenv("LLM_API_KEY", "")
+	t.Setenv("LLM_TIMEOUT", "")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if cfg.LLMBaseURL != "" || cfg.LLMAPIKey != "" {
+		t.Fatalf("llm must be off by default, got %+v", cfg)
+	}
+	if cfg.LLMModel != "qwen2.5:3b" {
+		t.Fatalf("want default model qwen2.5:3b, got %q", cfg.LLMModel)
+	}
+	if cfg.LLMTimeout != 60*time.Second {
+		t.Fatalf("want default timeout 60s, got %v", cfg.LLMTimeout)
+	}
+
+	t.Setenv("LLM_BASE_URL", "http://localhost:11434/v1")
+	t.Setenv("LLM_MODEL", "qwen2.5:7b")
+	t.Setenv("LLM_API_KEY", "key")
+	t.Setenv("LLM_TIMEOUT", "2m")
+
+	cfg, err = Load()
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if cfg.LLMBaseURL != "http://localhost:11434/v1" || cfg.LLMModel != "qwen2.5:7b" || cfg.LLMAPIKey != "key" {
+		t.Fatalf("wrong llm config %+v", cfg)
+	}
+	if cfg.LLMTimeout != 2*time.Minute {
+		t.Fatalf("want timeout 2m, got %v", cfg.LLMTimeout)
+	}
+}
+
+func TestLoadLLMTimeoutErrors(t *testing.T) {
+	for _, v := range []string{"60", "soon", "-5s", "0s"} {
+		t.Run(v, func(t *testing.T) {
+			t.Setenv("JWT_SECRET", "secret")
+			t.Setenv("STORAGE", "")
+			t.Setenv("S3_USE_SSL", "")
+			t.Setenv("LLM_TIMEOUT", v)
+
+			if _, err := Load(); err == nil {
+				t.Fatalf("want error for LLM_TIMEOUT=%q", v)
 			}
 		})
 	}

@@ -80,3 +80,7 @@ type attachmentResponse struct {
 	Size        int64  `json:"size" example:"48213"`
 	URL         string `json:"url" example:"/attachments/7"`
 } //@name Attachment
+
+type summaryResponse struct {
+	Summary string `json:"summary" example:"- anya предложила созвон в 10, oleg перенёс на 11"`
+} //@name SummaryResponse

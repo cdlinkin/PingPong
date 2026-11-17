@@ -96,7 +96,7 @@ func TestSendAttachment(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		repo := newFakeRepo()
 		store := newFakeStorage()
-		msg, err := NewService(repo, store).SendAttachment(
+		msg, err := NewService(repo, store, nil).SendAttachment(
 			ctx,
 			chatID,
 			member,
@@ -141,7 +141,7 @@ func TestSendAttachment(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := newFakeRepo()
 			store := newFakeStorage()
-			_, err := NewService(repo, store).SendAttachment(
+			_, err := NewService(repo, store, nil).SendAttachment(
 				ctx,
 				chatID,
 				tt.userID,
@@ -167,7 +167,7 @@ func TestGetAttachment(t *testing.T) {
 		repo := newFakeRepo()
 		store := newFakeStorage()
 		store.dir = t.TempDir()
-		svc := NewService(repo, store)
+		svc := NewService(repo, store, nil)
 		if _, err := svc.SendAttachment(ctx, chatID, member, "", nil, "a.png", bytes.NewReader(pngHeader)); err != nil {
 			t.Fatalf("send: %v", err)
 		}
@@ -221,7 +221,7 @@ func TestListMessageAttachments(t *testing.T) {
 		{ID: 2, MsgID: 2, FileName: "b.pdf"},
 	}
 
-	msgs, err := NewService(repo, store).ListMessage(ctx, member, chatID, 0, 0)
+	msgs, err := NewService(repo, store, nil).ListMessage(ctx, member, chatID, 0, 0)
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -242,7 +242,7 @@ func TestDeleteMessageRemovesFile(t *testing.T) {
 	t.Run("file removed", func(t *testing.T) {
 		repo := newFakeRepo()
 		store := newFakeStorage()
-		svc := NewService(repo, store)
+		svc := NewService(repo, store, nil)
 
 		msg, err := svc.SendAttachment(ctx, chatID, member, "", nil, "a.png", bytes.NewReader(pngHeader))
 		if err != nil {
@@ -266,7 +266,7 @@ func TestDeleteMessageRemovesFile(t *testing.T) {
 	t.Run("delete failed, file kept", func(t *testing.T) {
 		repo := newFakeRepo()
 		store := newFakeStorage()
-		svc := NewService(repo, store)
+		svc := NewService(repo, store, nil)
 
 		msg, err := svc.SendAttachment(ctx, chatID, member, "", nil, "a.png", bytes.NewReader(pngHeader))
 		if err != nil {

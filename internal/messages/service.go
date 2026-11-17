@@ -25,6 +25,7 @@ type repository interface {
 	GetAttachment(ctx context.Context, id int) (AttachmentModel, error)
 	AddMentions(ctx context.Context, msgID, chatID, authorID int, logins []string) ([]int, error)
 	ListMentions(ctx context.Context, msgIDs []int) ([]MentionModel, error)
+	ListUnreadForSummary(ctx context.Context, chatID, userID, limit int) ([]SummaryLineModel, error)
 }
 
 type FileStorage interface {
@@ -33,15 +34,21 @@ type FileStorage interface {
 	Remove(ctx context.Context, key string) error
 }
 
+type Summarizer interface {
+	Complete(ctx context.Context, system, user string) (string, error)
+}
+
 type Service struct {
 	repository repository
 	storage    FileStorage
+	summarizer Summarizer
 }
 
-func NewService(repository repository, storage FileStorage) *Service {
+func NewService(repository repository, storage FileStorage, summarizer Summarizer) *Service {
 	return &Service{
 		repository: repository,
 		storage:    storage,
+		summarizer: summarizer,
 	}
 }
 

@@ -14,6 +14,7 @@ import (
 	"github.com/cdlinkin/pingpong/internal/chats"
 	"github.com/cdlinkin/pingpong/internal/config"
 	"github.com/cdlinkin/pingpong/internal/httpx"
+	"github.com/cdlinkin/pingpong/internal/llm"
 	"github.com/cdlinkin/pingpong/internal/logging"
 	"github.com/cdlinkin/pingpong/internal/messages"
 	"github.com/cdlinkin/pingpong/internal/ratelimit"
@@ -81,7 +82,7 @@ func health(rw http.ResponseWriter, r *http.Request) {
 
 //	@title			PingPong API
 //	@version		1.0
-//	@description	REST API веб-мессенджера PingPong: регистрация и JWT-авторизация, личные и групповые чаты, сообщения с курсорной пагинацией и поиском, доставка в реальном времени через WebSocket.
+//	@description	REST API веб-мессенджера PingPong: регистрация и JWT-авторизация, личные и групповые чаты, сообщения с курсорной пагинацией и поиском, доставка в реальном времени через WebSocket, пересказ непрочитанного.
 //	@description
 //	@description	**Как авторизоваться:** выполните `POST /login`, нажмите **Authorize** и вставьте `Bearer <token>`. Токен живёт 15 минут, новую пару выдаёт `POST /refresh`.
 //	@description
@@ -97,7 +98,7 @@ func health(rw http.ResponseWriter, r *http.Request) {
 //	@tag.name			chats
 //	@tag.description	Личные и групповые чаты, участники
 //	@tag.name			messages
-//	@tag.description	Отправка, история и поиск сообщений
+//	@tag.description	Отправка, история, поиск и пересказ сообщений
 //	@tag.name			realtime
 //	@tag.description	WebSocket
 
@@ -154,8 +155,16 @@ func main() {
 	}
 	logger.Info("file storage", "type", cfg.Storage)
 
+	var summarizer messages.Summarizer
+	if cfg.LLMBaseURL != "" {
+		summarizer = llm.New(cfg.LLMBaseURL, cfg.LLMModel, cfg.LLMAPIKey, cfg.LLMTimeout)
+		logger.Info("llm summary", "model", cfg.LLMModel, "timeout", cfg.LLMTimeout.String())
+	} else {
+		logger.Info("llm summary disabled")
+	}
+
 	msgRepo := messages.NewRepository(pool)
-	msgService := messages.NewService(msgRepo, fileStore)
+	msgService := messages.NewService(msgRepo, fileStore, summarizer)
 	msgHandler := messages.NewHandler(msgService, wsHub, logger)
 
 	mux := http.NewServeMux()
@@ -198,6 +207,7 @@ func main() {
 	mux.Handle("POST /chats/{id}/attachments", protected(msgHandler.SendAttachment))
 	mux.Handle("GET /attachments/{id}", protected(msgHandler.GetAttachment))
 	mux.Handle("PUT /chats/{id}/mute", protected(chatsHandler.SetMuted))
+	mux.Handle("POST /chats/{id}/summary", protected(msgHandler.SummarizeUnread))
 	mux.Handle("POST /refresh", authLimit.ByIP(http.HandlerFunc(handler.Refresh)))
 	mux.Handle("POST /logout", authLimit.ByIP(http.HandlerFunc(handler.Logout)))
 

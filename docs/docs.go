@@ -1145,6 +1145,82 @@ const docTemplate = `{
                 }
             }
         },
+        "/chats/{id}/summary": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Просит модель пересказать непрочитанные сообщения чата: до 100 последних, включая свои. Текст пересказа нигде не сохраняется. Если адрес модели не задан, ответ 503. Если вы не участник чата, ответ 404.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "messages"
+                ],
+                "summary": "Краткий пересказ непрочитанного",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID чата",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Пересказ",
+                        "schema": {
+                            "$ref": "#/definitions/SummaryResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid chat id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "invalid token",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "chat not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "422": {
+                        "description": "nothing to summarize",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "502": {
+                        "description": "summary unavailable",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "503": {
+                        "description": "summary is disabled",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "504": {
+                        "description": "summary timed out",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "description": "Отвечает ` + "`" + `{\"status\":\"OK\"}` + "`" + `, если сервер запущен.",
@@ -1820,6 +1896,15 @@ const docTemplate = `{
                 }
             }
         },
+        "SummaryResponse": {
+            "type": "object",
+            "properties": {
+                "summary": {
+                    "type": "string",
+                    "example": "- anya предложила созвон в 10, oleg перенёс на 11"
+                }
+            }
+        },
         "User": {
             "type": "object",
             "properties": {
@@ -1939,7 +2024,7 @@ const docTemplate = `{
             "name": "chats"
         },
         {
-            "description": "Отправка, история и поиск сообщений",
+            "description": "Отправка, история, поиск и пересказ сообщений",
             "name": "messages"
         },
         {
@@ -1956,7 +2041,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/",
 	Schemes:          []string{"http"},
 	Title:            "PingPong API",
-	Description:      "REST API веб-мессенджера PingPong: регистрация и JWT-авторизация, личные и групповые чаты, сообщения с курсорной пагинацией и поиском, доставка в реальном времени через WebSocket.\n\n**Как авторизоваться:** выполните `POST /login`, нажмите **Authorize** и вставьте `Bearer <token>`. Токен живёт 15 минут, новую пару выдаёт `POST /refresh`.\n\n**Ошибки** возвращаются обычным текстом (`text/plain`), например `chat not found`. Если вы не участник чата, API отвечает 404, чтобы не раскрывать, что чат существует.",
+	Description:      "REST API веб-мессенджера PingPong: регистрация и JWT-авторизация, личные и групповые чаты, сообщения с курсорной пагинацией и поиском, доставка в реальном времени через WebSocket, пересказ непрочитанного.\n\n**Как авторизоваться:** выполните `POST /login`, нажмите **Authorize** и вставьте `Bearer <token>`. Токен живёт 15 минут, новую пару выдаёт `POST /refresh`.\n\n**Ошибки** возвращаются обычным текстом (`text/plain`), например `chat not found`. Если вы не участник чата, API отвечает 404, чтобы не раскрывать, что чат существует.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",
