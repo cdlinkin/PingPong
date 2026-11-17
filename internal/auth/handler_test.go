@@ -133,3 +133,75 @@ func TestHandlerLogout(t *testing.T) {
 		t.Fatalf("bad json: want 400, got %d", rec.Code)
 	}
 }
+
+func TestHandlerRegister(t *testing.T) {
+	h, _ := newTestHandler(t)
+
+	rec := doJSON(h.Register, "/register", `{"login":"sonya","email":"sonya@mail.ru","password":"password123"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("want 201, got %d: %s", rec.Code, rec.Body)
+	}
+	var resp registerResponse
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.ID == 0 {
+		t.Fatal("want user id")
+	}
+
+	rec = doJSON(h.Register, "/register", `{"login":"sonya","email":"sonya@mail.ru","password":"password123"}`)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("duplicate: want 409, got %d: %s", rec.Code, rec.Body)
+	}
+
+	rec = doJSON(h.Register, "/register", `{`)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("bad json: want 400, got %d", rec.Code)
+	}
+
+	rec = doJSON(h.Register, "/register", `{"login":"ab","email":"ab@mail.ru","password":"password123"}`)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("short login: want 400, got %d: %s", rec.Code, rec.Body)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/register", nil)
+	got := httptest.NewRecorder()
+	h.Register(got, req)
+	if got.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("want 405, got %d", got.Code)
+	}
+}
+
+func TestHandlerMe(t *testing.T) {
+	h, _ := newTestHandler(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/me", nil)
+	req = req.WithContext(ContextWithUserID(req.Context(), 1))
+	rec := httptest.NewRecorder()
+	h.Me(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", rec.Code, rec.Body)
+	}
+	var resp meResponse
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.Login != "kuroame" || resp.Email != "kuro@mail.ru" {
+		t.Fatalf("unexpected profile: %+v", resp)
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/me", nil)
+	rec = httptest.NewRecorder()
+	h.Me(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("want 401, got %d", rec.Code)
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/me", nil)
+	req = req.WithContext(ContextWithUserID(req.Context(), 999))
+	rec = httptest.NewRecorder()
+	h.Me(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("want 404, got %d: %s", rec.Code, rec.Body)
+	}
+}

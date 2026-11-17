@@ -9,11 +9,12 @@ import (
 type memberKey struct{ chatID, userID int }
 
 type fakeRepo struct {
-	nextID  int
-	roles   map[memberKey]string
-	direct  map[[2]int]int
-	created int
-	muted   map[memberKey]bool
+	nextID          int
+	roles           map[memberKey]string
+	direct          map[[2]int]int
+	created         int
+	muted           map[memberKey]bool
+	createDirectErr error
 }
 
 func newFakeRepo() *fakeRepo {
@@ -38,6 +39,9 @@ func (f *fakeRepo) CreateGroupChat(ctx context.Context, title string, creatorID 
 }
 
 func (f *fakeRepo) CreateDirectChat(ctx context.Context, userA, userB int) (int, error) {
+	if f.createDirectErr != nil {
+		return 0, f.createDirectErr
+	}
 	f.nextID++
 	f.created++
 	f.direct[pair(userA, userB)] = f.nextID
