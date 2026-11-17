@@ -78,6 +78,19 @@ docker compose up --build
 
 `docker compose down` останавливает всё. Данные базы и файлы остаются в томах `pgdata` и `miniodata`. `docker compose down -v` удаляет и их.
 
+Те же шаги есть в `Makefile`. Команда `make` без аргументов печатает список.
+
+| | |
+|---|---|
+| `make up` | `docker compose up --build` |
+| `make down` | остановить контейнеры |
+| `make reset` | остановить и удалить тома |
+| `make db` | только Postgres и миграции |
+| `make run` | `go run ./cmd/app` |
+| `make test` | `go test -race ./...` |
+| `make test-integration` | SQL-тест, в окружении нужен `DATABASE_URL` |
+| `make swagger` | пересобрать `docs` |
+
 ### Без Docker для самого приложения
 
 Базу проще всё равно держать в контейнере:
