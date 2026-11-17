@@ -22,7 +22,7 @@ func (h *Handler) SummarizeUnread(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	line, err := h.service.SummarizeUnread(r.Context(), userID, chatID)
+	summary, err := h.service.SummarizeUnread(r.Context(), userID, chatID)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrChatNotFound):
@@ -38,9 +38,14 @@ func (h *Handler) SummarizeUnread(rw http.ResponseWriter, r *http.Request) {
 			h.logger.Error("summarize unread", "err", err)
 			http.Error(rw, "summary unavailable", http.StatusBadGateway)
 		}
+		return
 	}
 
-	if err := httpx.WriteJSON(rw, http.StatusOK, line); err != nil {
+	response := summaryResponse{
+		Summary: summary,
+	}
+
+	if err := httpx.WriteJSON(rw, http.StatusOK, response); err != nil {
 		h.logger.Warn("summarize unread: encode response", "err", err)
 	}
 }
